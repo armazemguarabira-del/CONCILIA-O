@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "StockPosition": {
+      "title": "StockPosition",
+      "description": "Posição física e contábil de estoque por SKU e depósito",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "produto": { "type": "string", "maxLength": 50 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "disponivelRaw": { "type": "string", "maxLength": 50 },
+        "inventarioRaw": { "type": "string", "maxLength": 50 },
+        "disponivelTotalUnits": { "type": "number" },
+        "inventarioTotalUnits": { "type": "number" },
+        "diferencaTotalUnits": { "type": "number" },
+        "diferencaRaw": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["OK", "SOBRA", "FALTA"] },
+        "prejuizoFinanceiro": { "type": "number" },
+        "sobraFinanceira": { "type": "number" },
+        "impactoHl": { "type": "number" },
+        "fatorSku": { "type": "number" },
+        "valorUnitario": { "type": "number" },
+        "recontado": { "type": "boolean" },
+        "atualizadoPor": { "type": "string", "maxLength": 100 },
+        "atualizadoEm": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "deposito", "produto", "descricao", "status"]
+    },
+    "Quebra": {
+      "title": "Quebra",
+      "description": "Registro de avaria ou quebra de produto no armazém",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "data": { "type": "string", "maxLength": 30 },
+        "sku": { "type": "string", "maxLength": 50 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "quantidade": { "type": "number" },
+        "valorTotal": { "type": "number" },
+        "volumeHl": { "type": "number" },
+        "area": { "type": "string", "maxLength": 100 },
+        "turno": { "type": "string", "maxLength": 50 },
+        "codQuebra": { "type": "string", "maxLength": 50 },
+        "motivo": { "type": "string", "maxLength": 200 },
+        "colaborador": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "deposito", "data", "sku", "quantidade", "valorTotal"]
+    },
+    "Vale": {
+      "title": "Vale",
+      "description": "Vale de rota emitido para equipe de entrega",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "data": { "type": "string", "maxLength": 30 },
+        "codigo": { "type": "string", "maxLength": 50 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "quantidade": { "type": "number" },
+        "valorTotal": { "type": "number" },
+        "motorista": { "type": "string", "maxLength": 100 },
+        "equipeCompleta": { "type": "string", "maxLength": 255 },
+        "cliente": { "type": "string", "maxLength": 200 },
+        "notaFiscal": { "type": "string", "maxLength": 50 },
+        "mapa": { "type": "string", "maxLength": 50 },
+        "rotaSetor": { "type": "string", "maxLength": 50 },
+        "statusVale": { "type": "string", "maxLength": 50 },
+        "idValeSstr": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "deposito", "data", "codigo", "quantidade", "valorTotal", "motorista"]
+    },
+    "Troca": {
+      "title": "Troca",
+      "description": "Registro de troca ou devolução de rota",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "data": { "type": "string", "maxLength": 30 },
+        "codigos": { "type": "string", "maxLength": 100 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "quantidade": { "type": "number" },
+        "valorTotal": { "type": "number" },
+        "motorista": { "type": "string", "maxLength": 100 },
+        "cliente": { "type": "string", "maxLength": 200 },
+        "notaFiscal": { "type": "string", "maxLength": 50 },
+        "mapa": { "type": "string", "maxLength": 50 },
+        "setorRota": { "type": "string", "maxLength": 50 },
+        "tipoProcesso": { "type": "string", "maxLength": 50 },
+        "motivoDeclarado": { "type": "string", "maxLength": 200 }
+      },
+      "required": ["id", "deposito", "data", "codigos", "quantidade", "valorTotal"]
+    },
+    "FaltaMapeada": {
+      "title": "FaltaMapeada",
+      "description": "Registro de falta mapeada em doca ou apurada operacionalmente",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "codigo": { "type": "string", "maxLength": 50 },
+        "descricao": { "type": "string", "maxLength": 200 },
+        "quantidade": { "type": "number" },
+        "observacao": { "type": "string", "maxLength": 500 },
+        "motivo": { "type": "string", "maxLength": 100 },
+        "data": { "type": "string", "maxLength": 30 },
+        "valorTotal": { "type": "number" },
+        "volumeHl": { "type": "number" },
+        "responsavel": { "type": "string", "maxLength": 100 },
+        "origem": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "deposito", "codigo", "descricao", "quantidade"]
+    },
+    "FrozenReconciliation": {
+      "title": "FrozenReconciliation",
+      "description": "Fechamento e congelamento histórico de conciliação diária de estoque",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "dataCongelamento": { "type": "string", "maxLength": 50 },
+        "nome": { "type": "string", "maxLength": 200 },
+        "usuario": { "type": "string", "maxLength": 100 },
+        "deposito": { "type": "string", "maxLength": 10 },
+        "totalSkus": { "type": "number" },
+        "totalFaltasSemAjustesValor": { "type": "number" },
+        "totalSobrasSemAjustesValor": { "type": "number" },
+        "saldoLiquidoSemAjustesValor": { "type": "number" },
+        "totalDesviosValor": { "type": "number" },
+        "totalFaltasComAjustesValor": { "type": "number" },
+        "totalSobrasComAjustesValor": { "type": "number" },
+        "saldoLiquidoComAjustesValor": { "type": "number" }
+      },
+      "required": ["id", "dataCongelamento", "nome", "usuario", "deposito", "totalSkus"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil de usuário e credenciais no sistema de conciliação",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nome": { "type": "string", "maxLength": 100 },
+        "matricula": { "type": "string", "maxLength": 50 },
+        "usuario": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "perfil": { "type": "string", "enum": ["ADMIN", "GESTOR_DPO", "SUPERVISOR_ESTOQUE", "CONFERENTE"] },
+        "cargo": { "type": "string", "maxLength": 100 },
+        "depositoPermitido": { "type": "string", "maxLength": 10 },
+        "ativo": { "type": "boolean" },
+        "criadoEm": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "nome", "matricula", "usuario", "perfil", "cargo", "ativo"]
+    }
+  },
+  "firestore": {
+    "/stockPositions/{positionId}": {
+      "schema": "StockPosition",
+      "description": "Coleção de itens de posição física e fiscal de estoque da Conciliação"
+    },
+    "/gradePositions/{positionId}": {
+      "schema": "StockPosition",
+      "description": "Coleção de itens de posição de estoque da Grade de Estoque"
+    },
+    "/quebras/{quebraId}": {
+      "schema": "Quebra",
+      "description": "Coleção de quebras e avarias de estoque registradas"
+    },
+    "/vales/{valeId}": {
+      "schema": "Vale",
+      "description": "Coleção de vales de rota emitidos para conferência"
+    },
+    "/trocas/{trocaId}": {
+      "schema": "Troca",
+      "description": "Coleção de trocas e devoluções apuradas"
+    },
+    "/faltasMapeadas/{faltaId}": {
+      "schema": "FaltaMapeada",
+      "description": "Coleção de faltas operacionais de doca mapeadas"
+    },
+    "/frozenReconciliations/{reconciliationId}": {
+      "schema": "FrozenReconciliation",
+      "description": "Coleção de fechamentos de conciliação diária congeladas"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Coleção de perfis de operadores e administradores do armazém"
+    },
+    "/test/{testId}": {
+      "schema": "StockPosition",
+      "description": "Documento de teste de conexão com o Firestore"
+    }
+  }
+}
