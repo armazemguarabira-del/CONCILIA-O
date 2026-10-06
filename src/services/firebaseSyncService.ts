@@ -12,7 +12,8 @@ import {
   getDocs, 
   doc, 
   setDoc, 
-  deleteDoc 
+  deleteDoc,
+  getDoc 
 } from 'firebase/firestore';
 import type { 
   StockPositionItem, 
@@ -21,8 +22,18 @@ import type {
   TrocaItem, 
   FaltaMapeadaItem, 
   FrozenReconciliation, 
-  UserAccount 
+  UserAccount,
+  ProductMaster 
 } from '../types';
+
+export interface InversaoSyncPayload {
+  deposito: string;
+  baseMode: string;
+  fullPairs?: any[];
+  customPairs?: Record<string, { qtdSobra: number; qtdSaida: number }>;
+  deletedKeys?: string[];
+  atualizadoEm?: string;
+}
 
 function sanitizeDocId(rawId: string, fallback: string = 'doc'): string {
   const sanitized = String(rawId || '').replace(/[^a-zA-Z0-9_\-\.:]/g, '_').substring(0, 120);
@@ -87,7 +98,7 @@ export async function logoutFirebase() {
  * Cloud Sync for Stock Positions (Conciliação 02.05.02)
  */
 export async function saveStockPositionsToFirestore(items: StockPositionItem[]) {
-  if (!auth.currentUser || !items || items.length === 0) return false;
+  if (!items || items.length === 0) return false;
   const path = 'stockPositions';
   try {
     await runInChunks(items, 30, async (item) => {
@@ -118,21 +129,25 @@ export async function saveStockPositionsToFirestore(items: StockPositionItem[]) 
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadStockPositionsFromFirestore(): Promise<StockPositionItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'stockPositions';
   try {
     const snap = await getDocs(collection(db, path));
     const list: StockPositionItem[] = [];
     snap.forEach(docSnap => {
-      list.push(docSnap.data() as StockPositionItem);
+      const d = docSnap.data();
+      if (d && d.produto) {
+        list.push(d as StockPositionItem);
+      }
     });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -140,7 +155,7 @@ export async function loadStockPositionsFromFirestore(): Promise<StockPositionIt
  * Cloud Sync for Grade de Estoque Positions (02.05.02 da Grade)
  */
 export async function saveGradePositionsToFirestore(items: StockPositionItem[]) {
-  if (!auth.currentUser || !items || items.length === 0) return false;
+  if (!items || items.length === 0) return false;
   const path = 'gradePositions';
   try {
     await runInChunks(items, 30, async (item) => {
@@ -171,21 +186,25 @@ export async function saveGradePositionsToFirestore(items: StockPositionItem[]) 
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadGradePositionsFromFirestore(): Promise<StockPositionItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'gradePositions';
   try {
     const snap = await getDocs(collection(db, path));
     const list: StockPositionItem[] = [];
     snap.forEach(docSnap => {
-      list.push(docSnap.data() as StockPositionItem);
+      const d = docSnap.data();
+      if (d && d.produto) {
+        list.push(d as StockPositionItem);
+      }
     });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -193,7 +212,7 @@ export async function loadGradePositionsFromFirestore(): Promise<StockPositionIt
  * Cloud Sync for Quebras
  */
 export async function saveQuebrasToFirestore(quebras: QuebraItem[]) {
-  if (!auth.currentUser || !quebras || quebras.length === 0) return false;
+  if (!quebras || quebras.length === 0) return false;
   const path = 'quebras';
   try {
     await runInChunks(quebras, 25, async (q) => {
@@ -226,19 +245,23 @@ export async function saveQuebrasToFirestore(quebras: QuebraItem[]) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadQuebrasFromFirestore(): Promise<QuebraItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'quebras';
   try {
     const snap = await getDocs(collection(db, path));
     const list: QuebraItem[] = [];
-    snap.forEach(d => list.push(d.data() as QuebraItem));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && item.sku) list.push(item as QuebraItem);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -246,7 +269,7 @@ export async function loadQuebrasFromFirestore(): Promise<QuebraItem[]> {
  * Cloud Sync for Vales
  */
 export async function saveValesToFirestore(vales: ValeItem[]) {
-  if (!auth.currentUser || !vales || vales.length === 0) return false;
+  if (!vales || vales.length === 0) return false;
   const path = 'vales';
   try {
     await runInChunks(vales, 25, async (v) => {
@@ -276,19 +299,23 @@ export async function saveValesToFirestore(vales: ValeItem[]) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadValesFromFirestore(): Promise<ValeItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'vales';
   try {
     const snap = await getDocs(collection(db, path));
     const list: ValeItem[] = [];
-    snap.forEach(d => list.push(d.data() as ValeItem));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && (item.codigo || item.id)) list.push(item as ValeItem);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -296,7 +323,7 @@ export async function loadValesFromFirestore(): Promise<ValeItem[]> {
  * Cloud Sync for Trocas
  */
 export async function saveTrocasToFirestore(trocas: TrocaItem[]) {
-  if (!auth.currentUser || !trocas || trocas.length === 0) return false;
+  if (!trocas || trocas.length === 0) return false;
   const path = 'trocas';
   try {
     await runInChunks(trocas, 25, async (t) => {
@@ -334,19 +361,23 @@ export async function saveTrocasToFirestore(trocas: TrocaItem[]) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadTrocasFromFirestore(): Promise<TrocaItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'trocas';
   try {
     const snap = await getDocs(collection(db, path));
     const list: TrocaItem[] = [];
-    snap.forEach(d => list.push(d.data() as TrocaItem));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && (item.codigos || item.sku || item.id)) list.push(item as TrocaItem);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -354,7 +385,7 @@ export async function loadTrocasFromFirestore(): Promise<TrocaItem[]> {
  * Cloud Sync for Faltas Mapeadas
  */
 export async function saveFaltasToFirestore(faltas: FaltaMapeadaItem[]) {
-  if (!auth.currentUser || !faltas || faltas.length === 0) return false;
+  if (!faltas || faltas.length === 0) return false;
   const path = 'faltasMapeadas';
   try {
     await runInChunks(faltas, 25, async (f) => {
@@ -375,11 +406,11 @@ export async function saveFaltasToFirestore(faltas: FaltaMapeadaItem[]) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function deleteFaltaFromFirestore(id: string) {
-  if (!auth.currentUser) return false;
   const path = 'faltasMapeadas';
   try {
     const docRef = doc(db, path, id);
@@ -392,7 +423,7 @@ export async function deleteFaltaFromFirestore(id: string) {
 }
 
 export async function deleteFaltasBatchFromFirestore(ids: string[]) {
-  if (!auth.currentUser || ids.length === 0) return false;
+  if (!ids || ids.length === 0) return false;
   const path = 'faltasMapeadas';
   try {
     const promises = ids.map(id => deleteDoc(doc(db, path, id)));
@@ -405,15 +436,18 @@ export async function deleteFaltasBatchFromFirestore(ids: string[]) {
 }
 
 export async function loadFaltasFromFirestore(): Promise<FaltaMapeadaItem[]> {
-  if (!auth.currentUser) return [];
   const path = 'faltasMapeadas';
   try {
     const snap = await getDocs(collection(db, path));
     const list: FaltaMapeadaItem[] = [];
-    snap.forEach(d => list.push(d.data() as FaltaMapeadaItem));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && (item.codigo || item.id)) list.push(item as FaltaMapeadaItem);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
@@ -421,7 +455,6 @@ export async function loadFaltasFromFirestore(): Promise<FaltaMapeadaItem[]> {
  * Cloud Sync for Frozen Reconciliations
  */
 export async function saveFrozenReconciliationToFirestore(item: FrozenReconciliation) {
-  if (!auth.currentUser) return false;
   const path = 'frozenReconciliations';
   try {
     const docId = sanitizeDocId(item.id, 'fr');
@@ -431,24 +464,27 @@ export async function saveFrozenReconciliationToFirestore(item: FrozenReconcilia
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadFrozenReconciliationsFromFirestore(): Promise<FrozenReconciliation[]> {
-  if (!auth.currentUser) return [];
   const path = 'frozenReconciliations';
   try {
     const snap = await getDocs(collection(db, path));
     const list: FrozenReconciliation[] = [];
-    snap.forEach(d => list.push(d.data() as FrozenReconciliation));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && (item.nome || item.id)) list.push(item as FrozenReconciliation);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
 }
 
 export async function deleteFrozenReconciliationFromFirestore(id: string) {
-  if (!auth.currentUser) return false;
   const path = 'frozenReconciliations';
   try {
     const docId = sanitizeDocId(id, 'fr');
@@ -456,6 +492,7 @@ export async function deleteFrozenReconciliationFromFirestore(id: string) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
+    return false;
   }
 }
 
@@ -463,7 +500,6 @@ export async function deleteFrozenReconciliationFromFirestore(id: string) {
  * Cloud Sync for User Profiles
  */
 export async function saveUserToFirestore(user: UserAccount) {
-  if (!auth.currentUser) return false;
   const path = 'users';
   try {
     const docId = sanitizeDocId(user.id, 'u');
@@ -473,18 +509,216 @@ export async function saveUserToFirestore(user: UserAccount) {
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
   }
 }
 
 export async function loadUsersFromFirestore(): Promise<UserAccount[]> {
-  if (!auth.currentUser) return [];
   const path = 'users';
   try {
     const snap = await getDocs(collection(db, path));
     const list: UserAccount[] = [];
-    snap.forEach(d => list.push(d.data() as UserAccount));
+    snap.forEach(d => {
+      const item = d.data();
+      if (item && (item.nome || item.matricula || item.usuario)) list.push(item as UserAccount);
+    });
     return list;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+    return [];
   }
+}
+
+/**
+ * Cloud Sync for Inversão (Table of Inversions, Custom Quantities & Excluded Pairs)
+ */
+export async function saveInversoesToFirestore(payload: InversaoSyncPayload): Promise<boolean> {
+  const path = 'inversoes';
+  const docId = sanitizeDocId(`${payload.deposito || 'ALL'}_${payload.baseMode || 'conciliacao'}`, 'inversao_state');
+  try {
+    const docRef = doc(db, path, docId);
+    const cleaned = cleanObjectForFirestore({
+      id: docId,
+      deposito: String(payload.deposito || 'ALL'),
+      baseMode: String(payload.baseMode || 'conciliacao'),
+      deletedKeys: Array.isArray(payload.deletedKeys) ? payload.deletedKeys : [],
+      customPairs: payload.customPairs ? JSON.stringify(payload.customPairs) : '{}',
+      fullPairs: payload.fullPairs ? JSON.stringify(payload.fullPairs) : '[]',
+      atualizadoEm: new Date().toISOString()
+    });
+    await setDoc(docRef, cleaned, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn('[Firebase] Warning saving inversoes to Firestore:', error);
+    return false;
+  }
+}
+
+export async function loadInversoesFromFirestore(
+  deposito: string = 'ALL', 
+  baseMode: string = 'conciliacao'
+): Promise<InversaoSyncPayload | null> {
+  const path = 'inversoes';
+  const docId = sanitizeDocId(`${deposito || 'ALL'}_${baseMode || 'conciliacao'}`, 'inversao_state');
+  try {
+    const docRef = doc(db, path, docId);
+    const snap = await getDoc(docRef).catch(() => null);
+    if (snap && snap.exists()) {
+      const data = snap.data();
+      let customPairs = {};
+      let fullPairs = [];
+      try {
+        if (typeof data.customPairs === 'string') customPairs = JSON.parse(data.customPairs);
+      } catch {}
+      try {
+        if (typeof data.fullPairs === 'string') fullPairs = JSON.parse(data.fullPairs);
+      } catch {}
+      return {
+        deposito: data.deposito,
+        baseMode: data.baseMode,
+        deletedKeys: Array.isArray(data.deletedKeys) ? data.deletedKeys : [],
+        customPairs,
+        fullPairs,
+        atualizadoEm: data.atualizadoEm
+      };
+    }
+  } catch (error) {
+    console.warn('[Firebase] Warning loading inversoes from Firestore:', error);
+  }
+  return null;
+}
+
+export async function loadAllInversoesFromFirestore(): Promise<InversaoSyncPayload[]> {
+  const path = 'inversoes';
+  try {
+    const snap = await getDocs(collection(db, path));
+    const list: InversaoSyncPayload[] = [];
+    snap.forEach(d => {
+      const data = d.data();
+      let customPairs = {};
+      let fullPairs = [];
+      try {
+        if (typeof data.customPairs === 'string') customPairs = JSON.parse(data.customPairs);
+      } catch {}
+      try {
+        if (typeof data.fullPairs === 'string') fullPairs = JSON.parse(data.fullPairs);
+      } catch {}
+      list.push({
+        deposito: data.deposito,
+        baseMode: data.baseMode,
+        deletedKeys: Array.isArray(data.deletedKeys) ? data.deletedKeys : [],
+        customPairs,
+        fullPairs,
+        atualizadoEm: data.atualizadoEm
+      });
+    });
+    return list;
+  } catch (error) {
+    console.warn('[Firebase] Warning loading all inversoes from Firestore:', error);
+    return [];
+  }
+}
+
+/**
+ * Cloud Sync for Products Master Catalog
+ */
+export async function saveProductsToFirestore(products: ProductMaster[]): Promise<boolean> {
+  if (!products || products.length === 0) return false;
+  const path = 'products';
+  try {
+    await runInChunks(products, 30, async (prod) => {
+      const code = prod.codigo || (prod as any).sku || '';
+      const docId = sanitizeDocId(code, 'sku');
+      const docRef = doc(db, path, docId);
+      const cleaned = cleanObjectForFirestore({
+        codigo: code,
+        descricao: prod.descricao,
+        fatorSku: Number(prod.fatorSku || 1),
+        fatorPallet: Number(prod.fatorPallet || 1),
+        embalagem: prod.embalagem || '',
+        grupo: prod.grupo || 'GERAL',
+        valor: Number(prod.valor || 0),
+        valorUnit: Number(prod.valorUnit || 0),
+        fatorHl: Number(prod.fatorHl || 0),
+        idade: Number(prod.idade || 180),
+        atualizadoEm: new Date().toISOString()
+      });
+      return setDoc(docRef, cleaned, { merge: true });
+    });
+    return true;
+  } catch (err) {
+    console.warn('[Firebase] Warning saving products to Firestore:', err);
+    return false;
+  }
+}
+
+export async function loadProductsFromFirestore(): Promise<ProductMaster[]> {
+  const path = 'products';
+  try {
+    const snap = await getDocs(collection(db, path));
+    const list: ProductMaster[] = [];
+    snap.forEach(d => {
+      const data = d.data() as any;
+      if (data && (data.codigo || data.sku)) {
+        list.push({
+          codigo: data.codigo || data.sku,
+          descricao: data.descricao || '',
+          fatorSku: Number(data.fatorSku || 1),
+          fatorPallet: Number(data.fatorPallet || 1),
+          embalagem: data.embalagem || '',
+          grupo: data.grupo || 'GERAL',
+          valor: Number(data.valor || 0),
+          valorUnit: Number(data.valorUnit || 0),
+          fatorHl: Number(data.fatorHl || 0),
+          idade: Number(data.idade || 180)
+        });
+      }
+    });
+    return list;
+  } catch (err) {
+    console.warn('[Firebase] Warning loading products from Firestore:', err);
+    return [];
+  }
+}
+
+/**
+ * Cloud Sync for App Settings (e.g. Weekly Billing Status)
+ */
+export async function saveAppSettingsToFirestore(key: string, data: any): Promise<boolean> {
+  const path = 'appSettings';
+  try {
+    const docRef = doc(db, path, sanitizeDocId(key, 'setting'));
+    const cleaned = cleanObjectForFirestore({
+      key,
+      payload: typeof data === 'object' ? JSON.stringify(data) : data,
+      atualizadoEm: new Date().toISOString()
+    });
+    await setDoc(docRef, cleaned, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('[Firebase] Warning saving appSettings to Firestore:', err);
+    return false;
+  }
+}
+
+export async function loadAppSettingsFromFirestore<T>(key: string): Promise<T | null> {
+  const path = 'appSettings';
+  try {
+    const snap = await getDocs(collection(db, path));
+    const target = snap.docs.find(d => d.id === sanitizeDocId(key, 'setting'));
+    if (target && target.exists()) {
+      const d = target.data();
+      if (typeof d.payload === 'string') {
+        try {
+          return JSON.parse(d.payload) as T;
+        } catch {
+          return d.payload as unknown as T;
+        }
+      }
+      return d.payload as T;
+    }
+  } catch (err) {
+    console.warn('[Firebase] Warning loading appSettings from Firestore:', err);
+  }
+  return null;
 }

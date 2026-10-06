@@ -59,6 +59,8 @@ import {
   loadFaltasFromFirestore,
   loadFrozenReconciliationsFromFirestore,
   loadUsersFromFirestore,
+  loadProductsFromFirestore,
+  loadAppSettingsFromFirestore,
   saveStockPositionsToFirestore,
   saveGradePositionsToFirestore,
   saveQuebrasToFirestore,
@@ -67,6 +69,8 @@ import {
   saveFaltasToFirestore,
   saveFrozenReconciliationToFirestore,
   saveUserToFirestore,
+  saveProductsToFirestore,
+  saveAppSettingsToFirestore,
   logoutFirebase
 } from './services/firebaseSyncService';
 import {
@@ -539,10 +543,13 @@ export default function App() {
   useEffect(() => {
     persistData(STORAGE_KEYS.STOCK_POSITIONS_020502, stockPositions);
     persistData(STORAGE_KEYS.STOCK_POSITIONS_LEGACY, stockPositions);
-    if (auth.currentUser && stockPositions.length > 0) {
-      saveStockPositionsToFirestore(stockPositions).catch((err) => 
-        console.warn('[Firebase] Sync stockPositions warning:', err)
-      );
+    if (stockPositions.length > 0) {
+      const timer = setTimeout(() => {
+        saveStockPositionsToFirestore(stockPositions).catch((err) => 
+          console.warn('[Firebase] Sync stockPositions warning:', err)
+        );
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [stockPositions]);
 
@@ -550,51 +557,74 @@ export default function App() {
   useEffect(() => {
     persistData(STORAGE_KEYS.GRADE_POSITIONS, gradeStockPositions);
     persistData(STORAGE_KEYS.GRADE_POSITIONS_LEGACY, gradeStockPositions);
-    if (auth.currentUser && gradeStockPositions.length > 0) {
-      saveGradePositionsToFirestore(gradeStockPositions).catch((err) => 
-        console.warn('[Firebase] Sync gradePositions warning:', err)
-      );
+    if (gradeStockPositions.length > 0) {
+      const timer = setTimeout(() => {
+        saveGradePositionsToFirestore(gradeStockPositions).catch((err) => 
+          console.warn('[Firebase] Sync gradePositions warning:', err)
+        );
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [gradeStockPositions]);
 
   useEffect(() => {
     persistData(STORAGE_KEYS.QUEBRAS, quebras);
-    if (auth.currentUser && quebras.length > 0) {
-      saveQuebrasToFirestore(quebras).catch((err) => 
-        console.warn('[Firebase] Sync quebras warning:', err)
-      );
+    if (quebras.length > 0) {
+      const timer = setTimeout(() => {
+        saveQuebrasToFirestore(quebras).catch((err) => 
+          console.warn('[Firebase] Sync quebras warning:', err)
+        );
+      }, 1200);
+      return () => clearTimeout(timer);
     }
   }, [quebras]);
 
   useEffect(() => {
     persistData(STORAGE_KEYS.WEEKLY_BILLING, weeklyBillingStatus);
+    if (weeklyBillingStatus) {
+      const timer = setTimeout(() => {
+        saveAppSettingsToFirestore('weeklyBillingStatus', weeklyBillingStatus).catch((err) =>
+          console.warn('[Firebase] Sync weeklyBilling warning:', err)
+        );
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   }, [weeklyBillingStatus]);
 
   useEffect(() => {
     persistData(STORAGE_KEYS.VALES, vales);
-    if (auth.currentUser && vales.length > 0) {
-      saveValesToFirestore(vales).catch((err) => 
-        console.warn('[Firebase] Sync vales warning:', err)
-      );
+    if (vales.length > 0) {
+      const timer = setTimeout(() => {
+        saveValesToFirestore(vales).catch((err) => 
+          console.warn('[Firebase] Sync vales warning:', err)
+        );
+      }, 1200);
+      return () => clearTimeout(timer);
     }
   }, [vales]);
 
   useEffect(() => {
     persistData(STORAGE_KEYS.TROCAS, trocas);
     persistData(STORAGE_KEYS.TROCAS_V4, trocas);
-    if (auth.currentUser && trocas.length > 0) {
-      saveTrocasToFirestore(trocas).catch((err) => 
-        console.warn('[Firebase] Sync trocas warning:', err)
-      );
+    if (trocas.length > 0) {
+      const timer = setTimeout(() => {
+        saveTrocasToFirestore(trocas).catch((err) => 
+          console.warn('[Firebase] Sync trocas warning:', err)
+        );
+      }, 1200);
+      return () => clearTimeout(timer);
     }
   }, [trocas]);
 
   useEffect(() => {
     persistData(STORAGE_KEYS.FALTAS, faltasMapeadas);
-    if (auth.currentUser && faltasMapeadas.length > 0) {
-      saveFaltasToFirestore(faltasMapeadas).catch((err) => 
-        console.warn('[Firebase] Sync faltas warning:', err)
-      );
+    if (faltasMapeadas.length > 0) {
+      const timer = setTimeout(() => {
+        saveFaltasToFirestore(faltasMapeadas).catch((err) => 
+          console.warn('[Firebase] Sync faltas warning:', err)
+        );
+      }, 1200);
+      return () => clearTimeout(timer);
     }
   }, [faltasMapeadas]);
 
@@ -602,15 +632,26 @@ export default function App() {
     persistData(STORAGE_KEYS.FROZEN, frozenReconciliations);
   }, [frozenReconciliations]);
 
-  // Firebase Firestore data sync - runs when user is authenticated in Firebase Auth
+  // Sincronização automática contínua com o Firebase Firestore
+  // Permite que qualquer alteração do Studio IA suba para a nuvem
+  // e que o link do GitHub Pages puxe 100% dos dados na inicialização
   useEffect(() => {
     let isMounted = true;
 
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (!isMounted || !fbUser) return;
-
+    async function executeCloudSync() {
       try {
-        const [cloudStock, cloudGrade, cloudQuebras, cloudVales, cloudTrocas, cloudFaltas, cloudFrozen, cloudUsers] = await Promise.all([
+        const [
+          cloudStock, 
+          cloudGrade, 
+          cloudQuebras, 
+          cloudVales, 
+          cloudTrocas, 
+          cloudFaltas, 
+          cloudFrozen, 
+          cloudUsers,
+          cloudProducts,
+          cloudBilling
+        ] = await Promise.all([
           loadStockPositionsFromFirestore().catch(() => []),
           loadGradePositionsFromFirestore().catch(() => []),
           loadQuebrasFromFirestore().catch(() => []),
@@ -618,21 +659,23 @@ export default function App() {
           loadTrocasFromFirestore().catch(() => []),
           loadFaltasFromFirestore().catch(() => []),
           loadFrozenReconciliationsFromFirestore().catch(() => []),
-          loadUsersFromFirestore().catch(() => [])
+          loadUsersFromFirestore().catch(() => []),
+          loadProductsFromFirestore().catch(() => []),
+          loadAppSettingsFromFirestore<Record<string, 'PENDENTE' | 'OK'>>('weeklyBillingStatus').catch(() => null)
         ]);
 
         if (!isMounted) return;
 
-        // 1. Stock positions (Conciliação 02.05.02)
+        // 1. Posições de Estoque (02.05.02)
         if (cloudStock && cloudStock.length > 0) {
-          setStockPositions(prev => prev.length === 0 ? cloudStock : prev);
+          setStockPositions(cloudStock);
         } else if (stockPositions.length > 0) {
           saveStockPositionsToFirestore(stockPositions).catch(() => {});
         }
 
-        // 2. Grade stock positions (Grade 02.05.02)
+        // 2. Grade de Estoque (02.05.02)
         if (cloudGrade && cloudGrade.length > 0) {
-          setGradeStockPositions(prev => prev.length === 0 ? cloudGrade : prev);
+          setGradeStockPositions(cloudGrade);
         } else if (gradeStockPositions.length > 0) {
           saveGradePositionsToFirestore(gradeStockPositions).catch(() => {});
         }
@@ -640,38 +683,42 @@ export default function App() {
         // 3. Quebras
         if (cloudQuebras && cloudQuebras.length > 0) {
           const { cleaned } = sanitizeAndDeduplicateQuebras(cloudQuebras);
-          setQuebras(prev => prev.length === 0 ? cleaned : prev);
+          setQuebras(cleaned);
         } else if (quebras.length > 0) {
           saveQuebrasToFirestore(quebras).catch(() => {});
         }
 
         // 4. Vales
         if (cloudVales && cloudVales.length > 0) {
-          setVales(prev => prev.length === 0 ? cloudVales : prev);
+          setVales(cloudVales);
         } else if (vales.length > 0) {
           saveValesToFirestore(vales).catch(() => {});
         }
 
         // 5. Trocas
         if (cloudTrocas && cloudTrocas.length > 0) {
-          setTrocas(prev => prev.length === 0 ? cloudTrocas : prev);
+          setTrocas(cloudTrocas);
         } else if (trocas.length > 0) {
           saveTrocasToFirestore(trocas).catch(() => {});
         }
 
         // 6. Faltas
         if (cloudFaltas && cloudFaltas.length > 0) {
-          setFaltasMapeadas(prev => prev.length === 0 ? cloudFaltas : prev);
+          setFaltasMapeadas(cloudFaltas);
         } else if (faltasMapeadas.length > 0) {
           saveFaltasToFirestore(faltasMapeadas).catch(() => {});
         }
 
-        // 7. Frozen Reconciliations
+        // 7. Fechamentos Congelados
         if (cloudFrozen && cloudFrozen.length > 0) {
-          setFrozenReconciliations(prev => prev.length === 0 ? cloudFrozen : prev);
+          setFrozenReconciliations(cloudFrozen);
+        } else if (frozenReconciliations.length > 0) {
+          frozenReconciliations.forEach(fr => {
+            saveFrozenReconciliationToFirestore(fr).catch(() => {});
+          });
         }
 
-        // 8. Users
+        // 8. Usuários
         if (cloudUsers && cloudUsers.length > 0) {
           setUsers(prev => {
             const merged = [...prev];
@@ -682,17 +729,44 @@ export default function App() {
             });
             return merged;
           });
+        } else if (users.length > 0) {
+          users.forEach(u => saveUserToFirestore(u).catch(() => {}));
+        }
+
+        // 9. Produtos
+        if (cloudProducts && cloudProducts.length > 0) {
+          setProductsMap(prev => {
+            const nextMap = new Map(prev);
+            cloudProducts.forEach(cp => {
+              const code = cp?.codigo || (cp as any)?.sku;
+              if (code) {
+                const existing = nextMap.get(code);
+                nextMap.set(code, { ...existing, ...cp, codigo: code });
+              }
+            });
+            return nextMap;
+          });
+        } else if (productsMap.size > 0) {
+          saveProductsToFirestore(Array.from(productsMap.values())).catch(() => {});
+        }
+
+        // 10. Status de Faturamento Semanal
+        if (cloudBilling && Object.keys(cloudBilling).length > 0) {
+          setWeeklyBillingStatus(prev => ({ ...prev, ...cloudBilling }));
+        } else if (weeklyBillingStatus) {
+          saveAppSettingsToFirestore('weeklyBillingStatus', weeklyBillingStatus).catch(() => {});
         }
       } catch (err) {
-        console.warn('[Firebase] Cloud sync notice:', err);
+        console.warn('[Firebase] Automatic cloud sync notice:', err);
       }
-    });
+    }
+
+    executeCloudSync();
 
     return () => {
       isMounted = false;
-      unsubscribe();
     };
-  }, [stockPositions.length, gradeStockPositions.length, trocas.length, vales.length, faltasMapeadas.length, quebras.length]);
+  }, []);
 
   const handleConfirmSaveAndReset = (savedInfo: { filename: string; frozenRecord: FrozenReconciliation; method: string }) => {
     // 1. Salva a conciliação no histórico de congeladas

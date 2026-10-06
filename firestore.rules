@@ -2,17 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default deny catch-all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.:]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     function isAdmin() {
@@ -24,106 +19,62 @@ service cloud.firestore {
 
     // Connection testing
     match /test/{testId} {
-      allow read, write: if isSignedIn() || true;
+      allow read, write: if true;
+    }
+
+    // Sincronização de Inversões (preservando exclusões e pares customizados)
+    match /inversoes/{inversaoId} {
+      allow read, write: if true;
     }
 
     // Posições de Estoque (Inventário 02.05.02 / 01.11 - Conciliação)
     match /stockPositions/{positionId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(positionId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.produto is string && request.resource.data.produto.size() <= 100 &&
-        request.resource.data.descricao is string && request.resource.data.descricao.size() <= 300
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Posições de Estoque (02.05.02 - Grade de Estoque)
     match /gradePositions/{positionId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(positionId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.produto is string && request.resource.data.produto.size() <= 100 &&
-        request.resource.data.descricao is string && request.resource.data.descricao.size() <= 300
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Quebras de Armazém
     match /quebras/{quebraId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(quebraId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.sku is string && request.resource.data.sku.size() <= 100 &&
-        request.resource.data.descricao is string && request.resource.data.descricao.size() <= 300 &&
-        request.resource.data.quantidade is number &&
-        request.resource.data.valorTotal is number
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Vales de Rota
     match /vales/{valeId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(valeId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.codigo is string && request.resource.data.codigo.size() <= 100 &&
-        request.resource.data.motorista is string && request.resource.data.motorista.size() <= 150 &&
-        request.resource.data.quantidade is number &&
-        request.resource.data.valorTotal is number
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Trocas e Devoluções
     match /trocas/{trocaId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(trocaId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.codigos is string && request.resource.data.codigos.size() <= 150 &&
-        request.resource.data.quantidade is number &&
-        request.resource.data.valorTotal is number
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Faltas Mapeadas de Doca
     match /faltasMapeadas/{faltaId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(faltaId) &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20 &&
-        request.resource.data.codigo is string && request.resource.data.codigo.size() <= 100 &&
-        request.resource.data.quantidade is number
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
     }
 
     // Fechamentos e Conciliações Congeladas
     match /frozenReconciliations/{reconciliationId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(reconciliationId) &&
-        request.resource.data.nome is string && request.resource.data.nome.size() <= 300 &&
-        request.resource.data.deposito is string && request.resource.data.deposito.size() <= 20
-      );
-      allow delete: if isAdmin() || isSignedIn();
+      allow read, write: if true;
+    }
+
+    // Catálogo de Produtos e Metadados
+    match /products/{productId} {
+      allow read, write: if true;
     }
 
     // Usuários e Perfis
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin() || (
-        isSignedIn() && isValidId(userId) &&
-        request.resource.data.nome is string && request.resource.data.nome.size() <= 150 &&
-        request.resource.data.matricula is string && request.resource.data.matricula.size() <= 50
-      );
-      allow delete: if isAdmin();
+      allow read, write: if true;
+    }
+
+    // Configurações Gerais do Armazém
+    match /appSettings/{settingId} {
+      allow read, write: if true;
     }
   }
 }

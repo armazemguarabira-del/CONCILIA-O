@@ -82,6 +82,7 @@ import { QuantityStepperCell } from './QuantityStepperCell';
 import { persistData, STORAGE_KEYS } from '../utils/persistentStorage';
 import { SimuladorFiscalModal } from './SimuladorFiscalModal';
 import { InversaoErrorBoundary } from './InversaoErrorBoundary';
+import { saveInversoesToFirestore, loadInversoesFromFirestore } from '../services/firebaseSyncService';
 
 interface InversaoViewProps {
   stockPositions: StockPositionItem[];
@@ -259,6 +260,13 @@ export const InversaoView: React.FC<InversaoViewProps> = ({
       const arr = Array.from(keys);
       localStorage.setItem(deletedPairsStorageKey, JSON.stringify(arr));
       localStorage.setItem(globalDeletedPairsStorageKey, JSON.stringify(arr));
+
+      // Sincroniza exclusão diretamente com o Firestore
+      saveInversoesToFirestore({
+        deposito: selectedDeposito,
+        baseMode,
+        deletedKeys: arr
+      }).catch(() => {});
     } catch {
       // Ignora erro de escrita
     }
@@ -338,12 +346,74 @@ export const InversaoView: React.FC<InversaoViewProps> = ({
         }
       });
       localStorage.setItem(customPairsStorageKey, JSON.stringify(customData));
+
+      // Sincronização automática com a nuvem do Firebase Firestore
+      const deletedArr = Array.from(getDeletedPairKeys());
+      saveInversoesToFirestore({
+        deposito: selectedDeposito,
+        baseMode,
+        fullPairs: currentPares,
+        customPairs: customData,
+        deletedKeys: deletedArr
+      }).catch(() => {});
     } catch {
       // Ignora erro de storage
     }
   };
 
   const persistCustomPairs = persistParesState;
+
+  // Efeito de sincronização automática com o Firebase Firestore para carregar
+  // exclusões preservadas e pares customizados em qualquer dispositivo (incluindo GitHub Pages)
+  useEffect(() => {
+    let isMounted = true;
+    async function syncCloudInversoes() {
+      try {
+        const cloud = await loadInversoesFromFirestore(selectedDeposito, baseMode);
+        if (!isMounted) return;
+
+        if (cloud) {
+          // Se houver chaves de pares excluídos salvos na nuvem, mescla com o armazenamento local
+          if (cloud.deletedKeys && cloud.deletedKeys.length > 0) {
+            const currentKeys = getDeletedPairKeys();
+            cloud.deletedKeys.forEach(k => currentKeys.add(k));
+            const merged = Array.from(currentKeys);
+            localStorage.setItem(deletedPairsStorageKey, JSON.stringify(merged));
+            localStorage.setItem(globalDeletedPairsStorageKey, JSON.stringify(merged));
+          }
+
+          // Se houver pares salvos na nuvem e o estado local não tiver pares manuais, carrega os pares da nuvem
+          if (cloud.fullPairs && Array.isArray(cloud.fullPairs) && cloud.fullPairs.length > 0) {
+            setPares(prev => {
+              if (!prev || prev.length === 0) {
+                return cloud.fullPairs as InversaoPair[];
+              }
+              return prev;
+            });
+          }
+        } else {
+          // Se a nuvem ainda não tem o estado salvo, sobe o estado local atual para a nuvem
+          const localDeleted = Array.from(getDeletedPairKeys());
+          if (pares && pares.length > 0) {
+            saveInversoesToFirestore({
+              deposito: selectedDeposito,
+              baseMode,
+              fullPairs: pares,
+              deletedKeys: localDeleted
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn('[Firebase] Inversoes cloud sync notice:', e);
+      }
+    }
+
+    syncCloudInversoes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDeposito, baseMode]);
 
   // 1. Gera e recupera os chamados de inversão baseado na conciliação e no histórico salvo
   const refreshSuggestions = () => {

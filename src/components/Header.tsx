@@ -121,11 +121,12 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right: Last Update, Action Buttons & User Profile */}
       <div className="flex items-center gap-2.5 sm:gap-4">
         <div 
-          className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
-          title="Persistência contínua ativa: 02.05.02 e alterações são salvas automaticamente em disco local durável e na nuvem"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs"
+          title="Sincronização em nuvem ativa com o Firebase Firestore (armazem-facil--oficial). Todas as tabelas, posições e exclusões de inversão ficam sincronizadas entre o Studio IA e o GitHub Pages."
         >
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <Database className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Base Persistente Ativa</span>
+          <span>Nuvem Sincronizada</span>
         </div>
 
         <button

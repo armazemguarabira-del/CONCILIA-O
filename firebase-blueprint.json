@@ -151,9 +151,28 @@
         "criadoEm": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "nome", "matricula", "usuario", "perfil", "cargo", "ativo"]
+    },
+    "InversaoState": {
+      "title": "InversaoState",
+      "description": "Estado sincronizado de pares de inversão, exclusões manuais preservadas e quantidades customizadas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "deposito": { "type": "string", "maxLength": 20 },
+        "baseMode": { "type": "string", "maxLength": 50 },
+        "deletedKeys": { "type": "array", "items": { "type": "string" } },
+        "customPairs": { "type": "string" },
+        "fullPairs": { "type": "string" },
+        "atualizadoEm": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "deposito", "baseMode", "deletedKeys"]
     }
   },
   "firestore": {
+    "/inversoes/{inversaoId}": {
+      "schema": "InversaoState",
+      "description": "Coleção de estados e pares da tabela de inversões com exclusões preservadas"
+    },
     "/stockPositions/{positionId}": {
       "schema": "StockPosition",
       "description": "Coleção de itens de posição física e fiscal de estoque da Conciliação"
