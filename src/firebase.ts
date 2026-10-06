@@ -26,17 +26,27 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
+const customDatabaseId = (firebaseConfig as any).firestoreDatabaseId && 
+  (firebaseConfig as any).firestoreDatabaseId !== '(default)' 
+    ? (firebaseConfig as any).firestoreDatabaseId 
+    : undefined;
+
 // Configure Firestore with long-polling transport to eliminate iframe/sandbox WebSocket connection failures
 try {
-  initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-  }, firebaseConfig.firestoreDatabaseId);
+  if (customDatabaseId) {
+    initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    }, customDatabaseId);
+  } else {
+    initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  }
 } catch {
   // Safe if already initialized
 }
 
-// CRITICAL: The app will break without specifying firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = customDatabaseId ? getFirestore(app, customDatabaseId) : getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);

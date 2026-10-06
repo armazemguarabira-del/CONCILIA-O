@@ -1,12 +1,12 @@
 {
-  "projectId": "gen-lang-client-0624437496",
-  "appId": "1:701304893920:web:6c8b495653137d60357b85",
-  "apiKey": "AIzaSyAOVHg58KWp798onwm4Elx4gB_SCQDeJFo",
-  "authDomain": "gen-lang-client-0624437496.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-gestodeperdascon-cbe7b184-3aab-404c-8f9a-fa89782f39fa",
-  "storageBucket": "gen-lang-client-0624437496.firebasestorage.app",
-  "messagingSenderId": "701304893920",
-  "measurementId": "",
-  "oAuthClientId": "701304893920-vethqcf8158g27feuv4sf2dfs6vmcq8m.apps.googleusercontent.com",
+  "projectId": "armazem-facil--oficial",
+  "appId": "1:199175774274:web:0c4c91259e08877288cddb",
+  "apiKey": "AIzaSyCU7wOQObjxciIXk8pJG7MHpKV5s5x1Upw",
+  "authDomain": "armazem-facil--oficial.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "armazem-facil--oficial.firebasestorage.app",
+  "messagingSenderId": "199175774274",
+  "measurementId": "G-Q25WX12SWG",
+  "oAuthClientId": "199175774274-0c4c91259e08877288cddb.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
